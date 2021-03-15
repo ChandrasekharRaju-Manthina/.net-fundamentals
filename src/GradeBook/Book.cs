@@ -6,19 +6,48 @@ namespace GradeBook
 {
     public delegate void GradeAddedDelegate(object sender, EventArgs args);
 
-    public class Book
+    public class NamedObject
     {
-        private List<double> grades;
+        public NamedObject(string name)
+        {
+            Name = name;
+        }
 
         public string Name
         {
             get;
             set;
         }
+    }
+
+    public interface IBook
+    {
+        void AddGrade(double grade);
+        Statistics GetStatistics();
+        string Name { get; }
+        event GradeAddedDelegate GradeAdded;
+    }
+
+    public abstract class Book : NamedObject, IBook
+    {
+        protected Book(string name) : base(name)
+        {
+        }
+
+        public abstract event GradeAddedDelegate GradeAdded;
+
+        public abstract void AddGrade(double grade);
+
+        public abstract Statistics GetStatistics();
+    }
+
+    public class InMemoryBook : Book
+    {
+        private List<double> grades;
 
         public const string CATEGORY = "Science";
 
-        public Book(string name)
+        public InMemoryBook(string name) : base(name)
         {
             this.Name = name;
             grades = new List<double>();
@@ -43,9 +72,9 @@ namespace GradeBook
             }
         }
 
-        public event GradeAddedDelegate GradeAdded;
+        public override event GradeAddedDelegate GradeAdded;
 
-        public void AddGrade(double grade)
+        public override void AddGrade(double grade)
         {
             if (grade >= 0 && grade <= 100)
             {
@@ -62,41 +91,13 @@ namespace GradeBook
             }
         }
 
-        public Statistics GetStatistics()
+        public override Statistics GetStatistics()
         {
-            var sum = 0.0;
-            var highGrade = double.MinValue;
-            var lowGrade = double.MaxValue;
+            var statistics = new Statistics();
 
-            // foreach (var number in grades)
             for (int index = 0; index < grades.Count; index++)
             {
-                sum += grades[index];
-                highGrade = Math.Max(highGrade, grades[index]);
-                lowGrade = Math.Min(lowGrade, grades[index]);
-            }
-            var statistics = new Statistics();
-            statistics.Average = sum / grades.Count;
-            statistics.High = highGrade;
-            statistics.Low = lowGrade;
-
-            switch (statistics.Average)
-            {
-                case var d when d >= 90.0:
-                    statistics.Letter = 'A';
-                    break;
-                case var d when d >= 80.0:
-                    statistics.Letter = 'B';
-                    break;
-                case var d when d >= 70.0:
-                    statistics.Letter = 'C';
-                    break;
-                case var d when d >= 60.0:
-                    statistics.Letter = 'D';
-                    break;
-                default:
-                    statistics.Letter = 'F';
-                    break;
+                statistics.Add(grades[index]);
             }
 
             return statistics;
